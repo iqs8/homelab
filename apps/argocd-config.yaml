@@ -1,0 +1,18 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: argocd-config          # name shown in the Argo UI
+  namespace: argocd            # Applications must live in Argo's namespace
+spec:
+  project: default             # Argo's built-in project; fine for now
+  source:
+    repoURL: https://github.com/iqs8/homelab.git
+    targetRevision: main       # which branch to follow
+    path: argocd               # which folder to watch
+  destination:
+    server: https://kubernetes.default.svc   # "this cluster"
+    namespace: argocd          # default namespace for what it deploys
+  syncPolicy:
+    automated:                 # apply Git changes without clicking Sync
+      prune: true              # file removed from Git → removed from cluster
+      selfHeal: true           # ← self-healing: undo manual changes
