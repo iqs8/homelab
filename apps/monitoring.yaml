@@ -1,0 +1,70 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: monitoring
+  namespace: argocd
+spec:
+  project: default
+  source:
+    # Where the chart comes from: a Helm chart repository, not your Git repo
+    repoURL: https://prometheus-community.github.io/helm-charts
+    chart: kube-prometheus-stack
+    targetRevision: 93.1.0          # pinned version: upgrades only happen when you change this line
+    helm:
+      valuesObject:                 # our settings ("values"), written right here
+        # --- k3s fixes: these parts are built into the k3s process, not separate pods,
+        #     so the chart can't find them and would show them as permanently down
+        kubeControllerManager:
+          enabled: false
+        kubeScheduler:
+          enabled: false
+        kubeProxy:
+          enabled: false
+        kubeEtcd:
+          enabled: false
+
+        # --- Alertmanager: sends alert notifications. Nothing to notify yet, so off to save memory
+        alertmanager:
+          enabled: false
+
+        # --- Prometheus
+        prometheus:
+          prometheusSpec:
+            retention: 30d          # delete data older than 30 days...
+            retentionSize: 40GB     # ...or once the database passes 40 GB, whichever comes first
+            storageSpec:
+              volumeClaimTemplate:  # the PVC description; the operator makes the real PVC from it
+                spec:
+                  storageClassName: local-hdd   # ← the link to our PV
+                  accessModes: ["ReadWriteOnce"]
+                  resources:
+                    requests:
+                      storage: 50Gi
+          ingress:                  # Prometheus's own web page, handy for checking it works
+            enabled: true
+            ingressClassName: traefik
+            hosts:
+              - prometheus.home
+            paths:
+              - /
+
+        # --- Grafana (no storage: the chart's default, so nothing to set for that)
+        grafana:
+          admin:
+            existingSecret: grafana-admin   # the Secret from Part A
+          ingress:
+            enabled: true
+            ingressClassName: traefik
+            hosts:
+              - grafana.home
+            path: /
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true        # needed: the chart's CRDs are too big for Argo's normal apply
