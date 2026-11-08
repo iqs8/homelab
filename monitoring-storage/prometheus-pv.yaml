@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: prometheus-local
+  annotations:
+    # Argo: never delete this PV, even if the file leaves Git or the app is deleted
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
+spec:
+  capacity:
+    storage: 50Gi                            # the size it advertises (a label, not a hard limit, for a local folder)
+  volumeMode: Filesystem                     # a folder with files in it (vs. a raw disk)
+  accessModes:
+    - ReadWriteOnce                          # one node at a time can use it
+  persistentVolumeReclaimPolicy: Retain      # if the PVC is deleted: keep the files, don't reuse this PV
+  storageClassName: local-hdd                # ← the label
+  local:
+    path: /mnt/data/k3s/local/prometheus     # ← the real folder on the HDD
+  nodeAffinity:                              # ← only usable on the mini PC (where the folder exists)
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values:
+                - hououin-kyouma             # the value you saw in A2

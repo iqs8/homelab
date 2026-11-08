@@ -1,0 +1,6 @@
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: local-hdd                            # the label's name; PVs and PVCs refer to this
+provisioner: kubernetes.io/no-provisioner    # nobody auto-creates PVs of this type; we write them by hand
+volumeBindingMode: WaitForFirstConsumer      # don't pair a PVC with a PV until a pod actually needs it
