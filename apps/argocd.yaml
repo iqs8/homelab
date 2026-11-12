@@ -1,0 +1,28 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: argocd                 # keep this exactly "argocd" (same as releaseName below)
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://argoproj.github.io/argo-helm   # Argo's Helm chart repository, not GitHub
+    chart: argo-cd                                  # which chart in that repository
+    targetRevision: 3.6.0                 # ← the number from Part B
+    helm:
+      releaseName: argocd      # makes the chart's object names match your current ones (argocd-server, ...)
+      valuesObject:            # our answers to the chart's blanks
+        configs:
+          params:
+            server.insecure: true    # Traefik does HTTPS, so Argo serves plain HTTP (was set by hand before)
+        server:
+          ingress:
+            enabled: false     # your Ingress already lives in argocd/ingress.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    # no "automated:" block yet, ON PURPOSE.
+    # Argo will only compare and show differences; it won't change anything.
+    syncOptions:
+      - ServerSideApply=true   # Argo's CRDs are too large for normal apply (same fix as monitoring)
