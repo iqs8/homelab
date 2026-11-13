@@ -8,7 +8,7 @@ spec:
   source:
     repoURL: https://argoproj.github.io/argo-helm   # Argo's Helm chart repository, not GitHub
     chart: argo-cd                                  # which chart in that repository
-    targetRevision: 3.6.0                 # ← the number from Part B
+    targetRevision: 10.12.0                 # ← the number from Part B
     helm:
       releaseName: argocd      # makes the chart's object names match your current ones (argocd-server, ...)
       valuesObject:            # our answers to the chart's blanks
