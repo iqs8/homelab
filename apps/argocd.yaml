@@ -2,9 +2,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: argocd                 # keep this exactly "argocd" (same as releaseName below)
-  namespace: argocd
-  annotations:
-      argocd.argoproj.io/compare-options: ServerSideDiff=false   # compare without asking the cluster (temporary)
+  namespace: argocd  # compare without asking the cluster (temporary)
 spec:
   project: default
   source:
