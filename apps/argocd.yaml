@@ -24,7 +24,14 @@ spec:
     server: https://kubernetes.default.svc
     namespace: argocd
   syncPolicy:
-    # no "automated:" block yet, ON PURPOSE.
-    # Argo will only compare and show differences; it won't change anything.
+    automated:
+      prune: true
+      selfHeal: true
+    retry:
+      limit: 5
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 3m
     syncOptions:
       - ServerSideApply=true   # Argo's CRDs are too large for normal apply (same fix as monitoring)
