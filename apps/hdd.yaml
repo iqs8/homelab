@@ -1,14 +1,14 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: monitoring-storage
+  name: hdd 
   namespace: argocd
 spec:
   project: default
   source:
     repoURL: https://github.com/iqs8/homelab
     targetRevision: HEAD
-    path: monitoring-storage                 # watch this folder
+    path: hdd             # watch this folder
   destination:
     server: https://kubernetes.default.svc
   syncPolicy:
