@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: media-data
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
+spec:
+  capacity:
+    storage: 800Gi                           # a label, not a limit; roughly the drive minus Prometheus's share
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce                          # one node at a time (many pods on that node is fine)
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: local-hdd
+  local:
+    path: /mnt/data/k3s/local/media-data     # the folder from batch 1
+  nodeAffinity:                              # this is what pins the 4 media apps to the mini pc
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values:
+                - hououin-kyouma

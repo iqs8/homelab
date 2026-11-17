@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: media-claim
+  namespace: media
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
+spec:
+  storageClassName: local-hdd                # same name tag as the PV
+  volumeName: media-data                     # claim exactly that PV, not just any that fits
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 800Gi
