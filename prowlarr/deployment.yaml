@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prowlarr
+  namespace: media
+spec:
+  replicas: 1                       # SQLite: only ever one copy
+  strategy:
+    type: Recreate                  # old pod fully stops before the new one starts
+  selector:
+    matchLabels:
+      app: prowlarr
+  template:
+    metadata:
+      labels:
+        app: prowlarr
+    spec:
+      containers:
+        - name: prowlarr
+          image: lscr.io/linuxserver/prowlarr:3.0.2.5780-ls169   # pinned; upgrades only when you change this
+          env:
+            - name: PUID            # linuxserver images: run the app as this user...
+              value: "1000"
+            - name: PGID            # ...and group, so files match the HDD folders
+              value: "1000"
+            - name: TZ
+              value: America/Toronto
+          ports:
+            - containerPort: 9696   # Prowlarr's web UI
+          resources:
+            requests:
+              cpu: 100m             # a tenth of a core; mostly idle
+              memory: 256Mi
+            limits:
+              memory: 1Gi           # stops a runaway from eating the mini pc
+          volumeMounts:
+            - name: config
+              mountPath: /config    # where linuxserver images keep settings + database
+      volumes:
+        - name: config
+          persistentVolumeClaim:
+            claimName: prowlarr-config
+        
