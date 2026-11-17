@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: radarr
+  namespace: media
+spec:
+  replicas: 1                       # SQLite: only ever one copy
+  strategy:
+    type: Recreate                  # old pod fully stops before the new one starts
+  selector:
+    matchLabels:
+      app: radarr
+  template:
+    metadata:
+      labels:
+        app: radarr
+    spec:
+      containers:
+        - name: radarr
+          image: lscr.io/linuxserver/radarr:7.0.3.10918-ls328   # pinned; upgrades only when you change this
+          env:
+            - name: PUID            # linuxserver images: run the app as this user...
+              value: "1000"
+            - name: PGID            # ...and group, so files match the HDD folders
+              value: "1000"
+            - name: TZ
+              value: America/Toronto
+          ports:
+            - containerPort: 7878   # Radarr's web UI
+          resources:
+            requests:
+              cpu: 100m             # a tenth of a core; mostly idle
+              memory: 256Mi
+            limits:
+              memory: 1Gi           # stops a runaway from eating the mini pc
+          volumeMounts:
+            - name: config
+              mountPath: /config    # where linuxserver images keep settings + database
+            - name: media-data
+              mountPath: /data      # same path as Jellyfin, so the folders line up
+      volumes:
+        - name: config
+          persistentVolumeClaim:
+            claimName: radarr-config
+        - name: media-data
+          persistentVolumeClaim:
+            claimName: media-claim  # the shared HDD PVC; this pins Radarr to the mini pc
