@@ -1,0 +1,9 @@
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: local-provisioned
+  annotations:
+    defaultVolumeType: local               # make PVs with a local: block, not hostPath: (Velero needs this later)
+provisioner: rancher.io/local-path         # k3s's built-in provisioner builds the PVs
+reclaimPolicy: Retain                      # PVC deleted → keep the PV and the folder
+volumeBindingMode: WaitForFirstConsumer    # build nothing until a pod needs it, so the PV lands on the pod's node
