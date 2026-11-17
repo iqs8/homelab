@@ -1,0 +1,66 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: jellyfin
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://jellyfin.github.io/jellyfin-helm
+    chart: jellyfin
+    targetRevision: 3.7.0               # pinned chart version (Jellyfin 12.4); upgrades only when you change this
+    helm:
+      valuesObject:
+        # --- one pod at a time: SQLite can't have two Jellyfins writing it
+        deploymentStrategy:
+          type: Recreate                # old pod fully stops before the new one starts
+
+        # --- run as your user, so files it creates belong to you (matches the HDD folders)
+        podSecurityContext:
+          runAsUser: 1000
+          runAsGroup: 1000
+
+        # --- what it needs: the scheduler uses requests; the memory limit stops a runaway transcode eating the mini pc
+        resources:
+          requests:
+            cpu: 500m                   # half a CPU core
+            memory: 1Gi
+          limits:
+            memory: 3Gi                 # no CPU limit on purpose: transcoding should be allowed to use spare CPU
+
+        persistence:
+          # --- config + SQLite database: chart makes a PVC "jellyfin-config", the provisioner makes the PV
+          config:
+            storageClass: local-provisioned
+            size: 10Gi                  # a label, not a limit (metadata and images grow over time)
+            annotations:
+              argocd.argoproj.io/sync-options: Prune=false,Delete=false
+          # --- the chart's own media volume (fixed at /media): off, we mount ours at /data below
+          media:
+            enabled: false
+          # cache stays off: the chart uses a temporary folder that's wiped on restart, fine for transcode scraps
+
+        # --- our shared HDD volume, at the same path every media app will use
+        volumes:
+          - name: media-data
+            persistentVolumeClaim:
+              claimName: media-claim
+        volumeMounts:
+          - name: media-data
+            mountPath: /data
+
+        ingress:
+          enabled: true
+          className: traefik
+          hosts:
+            - host: jellyfin.home
+              paths:
+                - path: /
+                  pathType: Prefix
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: media                    # already exists (namespaces/), so no CreateNamespace
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
