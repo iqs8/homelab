@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: sonarr-config
+  namespace: media
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false   # holds data: Argo must never delete it
+spec:
+  storageClassName: local-provisioned
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi                  # a label, not a limit (same as Jellyfin's)
