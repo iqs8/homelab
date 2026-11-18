@@ -1,0 +1,99 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: qbittorrent
+  namespace: media
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate                    # also stops two Gluetuns fighting over the same VPN setup
+  selector:
+    matchLabels:
+      app: qbittorrent
+  template:
+    metadata:
+      labels:
+        app: qbittorrent
+    spec:
+      # --- DNS: ask Gluetun (inside this pod) only, so lookups go through the VPN, not the cluster/ISP
+      dnsPolicy: None
+      dnsConfig:
+        nameservers:
+          - 127.0.0.1
+
+      # --- Gluetun as a native sidecar: starts first, must pass its health check before qBittorrent starts
+      initContainers:
+        - name: gluetun
+          image: qmcgaw/gluetun:v3.41.3       # pinned
+          restartPolicy: Always               # this line is what makes it a sidecar (keeps running) rather than a one-off init step
+          securityContext:
+            capabilities:
+              add: ["NET_ADMIN"]              # allowed to change the pod's network: routes + firewall
+          env:
+            - name: VPN_SERVICE_PROVIDER
+              value: nordvpn
+            - name: VPN_TYPE
+              value: openvpn                  # Nord service credentials are OpenVPN credentials
+            - name: SERVER_COUNTRIES
+              value: Canada                   # nearby = faster; change if you like
+            - name: TZ
+              value: America/Toronto
+            - name: FIREWALL_INPUT_PORTS
+              value: "8080"                   # let Traefik, Sonarr, Radarr reach the web UI
+            - name: FIREWALL_OUTBOUND_SUBNETS
+              value: "10.42.0.0/16,10.43.0.0/16"   # cluster pods + Services go direct, not into the tunnel
+          envFrom:
+            - secretRef:
+                name: nordvpn-credentials     # adds OPENVPN_USER + OPENVPN_PASSWORD from the Secret made by hand
+          startupProbe:
+            exec:
+              command: ["/gluetun-entrypoint", "healthcheck"]   # Gluetun's own "is the tunnel up?" check
+            periodSeconds: 5
+            failureThreshold: 24              # 24 × 5s = up to 2 minutes to connect before Kubernetes gives up
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              memory: 256Mi
+          volumeMounts:
+            - name: tun
+              mountPath: /dev/net/tun
+
+      containers:
+        - name: qbittorrent
+          image: lscr.io/linuxserver/qbittorrent:5.1.4-r3-ls453   # pinned
+          env:
+            - name: PUID
+              value: "1000"
+            - name: PGID
+              value: "1000"
+            - name: TZ
+              value: America/Toronto
+            - name: WEBUI_PORT
+              value: "8080"
+          ports:
+            - containerPort: 8080             # qBittorrent's web UI
+          resources:
+            requests:
+              cpu: 200m
+              memory: 256Mi
+            limits:
+              memory: 2Gi                     # torrent caches can grow
+          volumeMounts:
+            - name: config
+              mountPath: /config
+            - name: media-data
+              mountPath: /data                # downloads go to /data/torrents/...
+
+      volumes:
+        - name: config
+          persistentVolumeClaim:
+            claimName: qbittorrent-config
+        - name: media-data
+          persistentVolumeClaim:
+            claimName: media-claim            # pins the pod to the mini pc, like Sonarr and Radarr
+        - name: tun
+          hostPath:
+            path: /dev/net/tun                # borrow the mini pc's tun device
+            type: CharDevice
