@@ -18,6 +18,9 @@ spec:
       containers:
         - name: radarr
           image: lscr.io/linuxserver/radarr:7.0.3.10918-ls328   # pinned; upgrades only when you change this
+          securityContext:
+            appArmorProfile:
+              type: Unconfined    # same workaround as sonarr/
           env:
             - name: PUID            # linuxserver images: run the app as this user...
               value: "1000"

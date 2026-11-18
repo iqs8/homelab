@@ -18,6 +18,9 @@ spec:
       containers:
         - name: prowlarr
           image: lscr.io/linuxserver/prowlarr:3.0.2.5780-ls169   # pinned; upgrades only when you change this
+          securityContext:
+            appArmorProfile:
+              type: Unconfined    # same workaround as sonarr/
           env:
             - name: PUID            # linuxserver images: run the app as this user...
               value: "1000"

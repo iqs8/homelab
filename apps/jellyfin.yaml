@@ -19,6 +19,8 @@ spec:
         podSecurityContext:
           runAsUser: 1000
           runAsGroup: 1000
+          appArmorProfile:
+            type: Unconfined  
 
         # --- what it needs: the scheduler uses requests; the memory limit stops a runaway transcode eating the mini pc
         resources:
