@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: seerr
+  namespace: media
+spec:
+  replicas: 1                       # SQLite: only ever one copy
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: seerr
+  template:
+    metadata:
+      labels:
+        app: seerr
+    spec:
+      containers:
+        - name: seerr
+          image: ghcr.io/seerr-team/seerr:v3.5.2   # pinned; official image (not linuxserver)
+          env:
+            - name: TZ
+              value: America/Toronto
+            # no PUID/PGID: this image already runs as user 1000 by itself
+          ports:
+            - containerPort: 5055   # Seerr's web UI
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              memory: 1Gi
+          volumeMounts:
+            - name: config
+              mountPath: /app/config   # Seerr keeps settings + database here, not /config
+      volumes:
+        - name: config
+          persistentVolumeClaim:
+            claimName: seerr-config
