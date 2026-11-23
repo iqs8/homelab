@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: volume-policy
+  namespace: velero
+data:
+  policy.yaml: |
+    version: v1
+    volumePolicies:
+      # App config volumes: copy their files with Kopia
+      - conditions:
+          storageClass:
+            - local-provisioned
+        action:
+          type: fs-backup
+      # HDD volumes (media, Prometheus): never copy
+      - conditions:
+          storageClass:
+            - local-hdd
+        action:
+          type: skip
