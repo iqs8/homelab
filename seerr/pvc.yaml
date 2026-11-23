@@ -3,6 +3,8 @@ kind: PersistentVolumeClaim
 metadata:
   name: seerr-config
   namespace: media
+  labels:
+    app: seerr
   annotations:
     argocd.argoproj.io/sync-options: Prune=false,Delete=false   # holds data: Argo must never delete it
 spec:

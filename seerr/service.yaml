@@ -3,6 +3,8 @@ kind: Service
 metadata:
   name: seerr
   namespace: media
+  labels:
+    app: seerr
 spec:
   selector:
     app: seerr
