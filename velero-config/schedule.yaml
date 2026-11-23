@@ -1,0 +1,17 @@
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: daily
+  namespace: velero
+spec:
+  schedule: "0 9 * * *"        # every day at 9:00 UTC = 4 AM Toronto (5 AM in summer)
+  template:
+    includedNamespaces:
+      - media                  # only look at media
+    excludedResources:
+      - secrets                # don't save Secrets (Nord creds stay out of S3)
+    snapshotVolumes: false     # file copies only
+    ttl: 720h                  # keep each backup 30 days
+    resourcePolicy:            # use the volume policy to pick which volumes to copy
+      kind: configmap
+      name: volume-policy
