@@ -1,0 +1,45 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: velero
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://vmware-tanzu.github.io/helm-charts
+    chart: velero
+    targetRevision: 12.2.5
+    helm:
+      releaseName: velero
+      valuesObject:
+        # The AWS plugin: an init container copies it into Velero's pod at startup
+        initContainers:
+          - name: velero-plugin-for-aws
+            image: velero/velero-plugin-for-aws:v1.14.4
+            volumeMounts:
+              - mountPath: /target
+                name: plugins
+        # Use the Secret we made by hand instead of having the chart create one
+        credentials:
+          useSecret: true
+          existingSecret: velero-credentials
+        # No disk snapshots: file copies only
+        snapshotsEnabled: false
+        # The DaemonSet that runs Kopia on every node
+        deployNodeAgent: true
+        configuration:
+          uploaderType: kopia
+          backupStorageLocation:
+            - name: default
+              provider: aws
+              bucket: iqs8-homelab-velero
+              default: true
+              config:
+                region: ca-central-1
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: velero
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
