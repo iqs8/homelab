@@ -48,7 +48,7 @@ flowchart LR
 
 ## Roadmap
 
-- [ ] Backups with Velero to S3 (bucket and IAM user provisioned with Terraform)
+- [X] Backups with Velero to S3 (bucket and IAM user provisioned with Terraform)
 - [ ] Sealed Secrets, so encrypted secrets (VPN, Grafana, Argo) can live in this repo instead of being created by hand
 - [ ] Alerting via Alertmanager (Discord + email)
 - [ ] Automated dependency updates with Renovate
