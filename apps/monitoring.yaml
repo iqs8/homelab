@@ -92,6 +92,21 @@ spec:
             hosts:
               - grafana.home
             path: /
+
+        # --- My own alert rules (plain-English, written for this homelab)
+        additionalPrometheusRulesMap:
+          homelab:                              # becomes a PrometheusRule named monitoring-kube-prometheus-homelab
+            groups:
+              - name: homelab.media
+                rules:
+                  - alert: MediaAppDown
+                    expr: kube_deployment_status_replicas_available{namespace="media"} == 0
+                    for: 5m
+                    labels:
+                      severity: warning
+                    annotations:
+                      summary: "{{ $labels.deployment }} is down"
+                      description: "No running copy of {{ $labels.deployment }} for 5 minutes. Check: sudo kubectl get pods -n media -o wide"
   destination:
     server: https://kubernetes.default.svc
     namespace: monitoring
