@@ -23,9 +23,36 @@ spec:
         kubeEtcd:
           enabled: false
 
-        # --- Alertmanager: sends alert notifications. Nothing to notify yet, so off to save memory
+                # --- Alertmanager: receives firing alerts from Prometheus and sends them to Discord
         alertmanager:
-          enabled: false
+          enabled: true
+          alertmanagerSpec:
+            secrets:
+              - alertmanager-discord        # made by hand; mounted at /etc/alertmanager/secrets/alertmanager-discord/
+          ingress:                          # Alertmanager's web page: see alerts, create silences
+            enabled: true
+            ingressClassName: traefik
+            hosts:
+              - alertmanager.home
+            paths:
+              - /
+          config:
+            route:
+              receiver: discord             # default: everything goes to Discord...
+              group_by: ['namespace', 'alertname']
+              group_wait: 30s               # wait 30s after the first alert so related ones arrive in one message
+              group_interval: 5m            # new alerts in an existing group: send at most every 5 min
+              repeat_interval: 12h          # still firing? remind every 12 hours
+              routes:
+                - receiver: 'null'          # ...except Watchdog, which fires forever on purpose
+                  matchers:
+                    - alertname = "Watchdog"
+            receivers:
+              - name: 'null'                # a receiver with no destination = "throw away"
+              - name: discord
+                discord_configs:
+                  - webhook_url_file: /etc/alertmanager/secrets/alertmanager-discord/webhook-url
+                    send_resolved: true     # also post when an alert stops firing
 
         # --- Prometheus
         prometheus:
