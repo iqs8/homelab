@@ -27,6 +27,8 @@ spec:
         alertmanager:
           enabled: true
           alertmanagerSpec:
+            nodeSelector:
+              kubernetes.io/hostname: hououin-kyouma   # always run on the mini pc, next to Prometheus, can't test node failures since stateful set would be on laptop
             secrets:
               - alertmanager-discord        # made by hand; mounted at /etc/alertmanager/secrets/alertmanager-discord/
           ingress:                          # Alertmanager's web page: see alerts, create silences
@@ -53,6 +55,11 @@ spec:
                 discord_configs:
                   - webhook_url_file: /etc/alertmanager/secrets/alertmanager-discord/webhook-url
                     send_resolved: true     # also post when an alert stops firing
+
+        # --- kube-state-metrics: most alert rules need its data, so keep it on the mini pc too
+        kube-state-metrics:
+          nodeSelector:
+            kubernetes.io/hostname: hououin-kyouma
 
         # --- Prometheus
         prometheus:
