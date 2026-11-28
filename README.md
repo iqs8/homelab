@@ -46,13 +46,30 @@ flowchart LR
 - **Node-local storage** (`node-storage/`): a `local-provisioned` StorageClass (k3s local-path provisioner, `Retain`) for small app config volumes, created automatically on whichever node the pod lands on.
 - Prometheus deliberately uses local disk, not network storage, to avoid database corruption.
 
+## Backups
+
+- **Velero** (`apps/velero.yaml`, settings in `velero-config/`) takes a daily backup of the media namespace: the Kubernetes objects plus the files in each app's config volume. Backups are encrypted, uploaded to S3 and kept for 30 days.
+- Only the node-local config volumes are backed up. The external HDD (media library, Prometheus data) is skipped, and Secrets are left out of backups.
+- Uploads are incremental (only changed data is sent), so storage costs pennies a month.
+- Restores have been tested: apps came back with their settings intact.
+- **Terraform** (`terraform/`) creates the AWS side: a private, encrypted, versioned S3 bucket, an IAM user that can only access that bucket, and a $5/month budget that blocks Velero's access if it's ever exceeded.
+
+## Monitoring and alerts
+
+- Prometheus collects metrics and Grafana shows the dashboards.
+- **Alertmanager** sends firing and resolved alerts to a private Discord channel. The webhook comes from a Kubernetes Secret, so it's never stored in Git.
+- Alerts use the chart's default rules, plus a custom rule that fires when any media app has been down for 5 minutes.
+- Prometheus, Alertmanager and kube-state-metrics are all pinned to the mini PC for now, so alerts still go out if the worker node goes down. Prometheus has to stay on the mini PC anyway because its data is on the HDD, so if the mini PC itself goes down there are no alerts either way.
+
+
 ## Roadmap
 
-- [X] Backups with Velero to S3 (bucket and IAM user provisioned with Terraform)
-- [ ] Sealed Secrets, so encrypted secrets (VPN, Grafana, Argo) can live in this repo instead of being created by hand
-- [ ] Alerting via Alertmanager (Discord + email)
+- [ ] Friendlier alerts: plain-language rules and email
+- [ ] Central logging with Loki, searchable in Grafana
+- [ ] Sealed Secrets, so encrypted secrets (VPN, Grafana, Argo, backups, Discord) can live in this repo instead of being created by hand
 - [ ] Automated dependency updates with Renovate
 - [ ] TLS certificates with cert-manager
 - [ ] Remote access to the cluster
 - [ ] More nodes
+- [ ] Replicated storage with Longhorn, once there are more nodes
 - [ ] More services: Uptime Kuma, Pi-hole
